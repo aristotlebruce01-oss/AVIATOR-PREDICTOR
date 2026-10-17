@@ -40,7 +40,20 @@ with DB() as seed_db:
   if not seed_db.query(PaymentOption).filter_by(method=method).first(): seed_db.add(PaymentOption(method=method,**values))
  seed_db.commit()
 app=FastAPI(title="Aviator Predictor API")
-app.add_middleware(CORSMiddleware,allow_origins=[os.getenv("FRONTEND_ORIGIN","https://aviator-predictor-two-pied.vercel.app","http://localhost:5173","http://172.20.10.4:5173")],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        os.getenv(
+            "FRONTEND_ORIGIN",
+            "https://aviator-predictor-two-pied.vercel.app"
+        ),
+        "http://localhost:5173",
+        "http://172.20.10.4:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 def db_dep():
  d=DB()
  try: yield d
