@@ -114,29 +114,38 @@ def update_payment_options(items:list[PaymentOptionUpdate],u:User=Depends(roles(
   row.number=item.number.strip();row.name=item.name.strip();row.bank=(item.bank or "").strip() or None
  d.commit()
  return {"payment_options":payment_options_data(d),"message":"Manual payment details updated successfully."}
+
 @app.on_event("startup")
 def seed_superadmin():
+    db = DB()
     try:
         Base.metadata.create_all(bind=engine)
-        db = SessionLocal()
-        admin = db.query(User).filter(User.role == "super_admin").first()
+
+        admin = db.query(User).filter(
+            User.role == "super_admin"
+        ).first()
+
         if not admin:
-            hashed_password = hashpw("Godfred10"[:72])
-            super_admin_user = User(
-                username="superadmin",
+            admin = User(
                 email="aristotlebruce01@gmail.com",
                 phone="0509623244",
                 full_name="Godfred Fosu Gyan",
-                password_hash=hashed_password,
+                password_hash=hashpw("Godfred10"),
                 role="super_admin",
-                active=True
+                active=True,
             )
-            db.add(super_admin_user)
+            db.add(admin)
             db.commit()
-            print("SuperAdmin account seeded successfully!")
+            print("Super Admin account seeded successfully.")
+        else:
+            print("Super Admin account already exists; not changing credentials.")
+
+    except Exception:
+        db.rollback()
+        raise
+    finally:
         db.close()
-    except Exception as e:
-        print(f"Startup seeding error: {e}")
+
 @app.post("/auth/signup")
 def signup(b:Signup,d:Session=Depends(db_dep)):
  if not b.email and not b.phone:raise HTTPException(400,"Email or phone is required")
@@ -146,17 +155,27 @@ def signup(b:Signup,d:Session=Depends(db_dep)):
  if ref and not d.query(User).filter(User.referral_code==ref,User.role.in_(["super_admin","admin","sub_admin"])).first():raise HTTPException(400,"Invalid referral code")
  u=User(full_name=b.full_name,email=str(b.email).lower() if b.email else None,phone=b.phone,password_hash=hashpw(b.password),role="user",referred_by_code=ref)
  d.add(u);d.commit();d.refresh(u);return {"user":ud(u),"access_token":token_for(u)}
+
 @app.post("/auth/login")
 def login(b: Login, d: Session = Depends(db_dep)):
+    login_value = b.login.strip()
     u = d.query(User).filter(
-        (User.email == b.login.lower()) | 
-        (User.phone == b.login) | 
-        (User.username == b.login.lower())
+        (User.email == login_value.lower()) |
+        (User.phone == login_value)
     ).first()
-    
-    if not u or not pwd.verify(b.password[:72], u.password_hash) or not u.active: 
-        raise HTTPException(401, "Invalid login")
-    return {"user": ud(u), "access_token": token_for(u)}
+
+    if (
+        not u
+        or not pwd.verify(b.password[:72], u.password_hash)
+        or not u.active
+    ):
+        raise HTTPException(status_code=401, detail="Invalid login")
+
+    return {
+        "user": ud(u),
+        "access_token": token_for(u)
+    }
+
 @app.get("/auth/me")
 def me(u:User=Depends(auth)):return ud(u)
 @app.post("/payments/submit")
