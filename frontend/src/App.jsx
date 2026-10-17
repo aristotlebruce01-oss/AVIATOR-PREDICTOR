@@ -1,5 +1,5 @@
 import React,{createContext,useContext,useState,useEffect,useRef}from'react';import{Routes,Route,Navigate,Link,useNavigate,useSearchParams}from'react-router-dom';import{Plane,Copy,History,Users,Wallet,LogOut,CheckCircle2,Upload,ShieldCheck}from'lucide-react';
-const API=import.meta.env.VITE_API_URL||'http://172.20.10.4:8000',Auth=createContext(null);
+const API = (import.meta.env.VITE_API_URL || "https://aviator-predictor-backend-ri36.onrender.com").replace(/\/+$/, ""),Auth=createContext(null);
 const packs=[['BASIC',300,'2 aviator predictions'],['STANDARD',500,'4 aviator predictions'],['ADVANCED',700,'6 aviator predictions'],['PREMIUM',1000,'8 aviator predictions'],['ULTIMATE',1500,'10 predictions'],['INFINITE',2000,'Unlimited aviator predictions']];
 const methodMeta=[{name:'MTN MoMo',mark:'MTN',kind:'mtn'},{name:'Telecel Cash',mark:'telecel',kind:'telecel'},{name:'Bank Transfer',mark:'GCB',kind:'bank'}];
 async function api(path,opt={}){let h={...(opt.headers||{})},t=localStorage.getItem('at');if(t)h.Authorization='Bearer '+t;if(opt.body&&!(opt.body instanceof FormData))h['Content-Type']='application/json';let r=await fetch(API+path,{...opt,headers:h}),d=await r.json().catch(()=>({detail:'Unexpected server response'}));if(!r.ok)throw Error(typeof d.detail==='string'?d.detail:(d.detail?.message||'Request failed'));return d}
