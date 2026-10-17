@@ -147,10 +147,16 @@ def signup(b:Signup,d:Session=Depends(db_dep)):
  u=User(full_name=b.full_name,email=str(b.email).lower() if b.email else None,phone=b.phone,password_hash=hashpw(b.password),role="user",referred_by_code=ref)
  d.add(u);d.commit();d.refresh(u);return {"user":ud(u),"access_token":token_for(u)}
 @app.post("/auth/login")
-def login(b:Login,d:Session=Depends(db_dep)):
- u=d.query(User).filter((User.email==b.login.lower())|(User.phone==b.login)).first()
- if not u or not pwd.verify(b.password[:72], u.password_hash) or not u.active: raise HTTPException(401, "Invalid login")
- return {"user":ud(u),"access_token":token_for(u)}
+def login(b: Login, d: Session = Depends(db_dep)):
+    u = d.query(User).filter(
+        (User.email == b.login.lower()) | 
+        (User.phone == b.login) | 
+        (User.username == b.login.lower())
+    ).first()
+    
+    if not u or not pwd.verify(b.password[:72], u.password_hash) or not u.active: 
+        raise HTTPException(401, "Invalid login")
+    return {"user": ud(u), "access_token": token_for(u)}
 @app.get("/auth/me")
 def me(u:User=Depends(auth)):return ud(u)
 @app.post("/payments/submit")
