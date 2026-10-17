@@ -73,7 +73,7 @@ def roles(*allowed):
  return check
 def hashpw(p):
  if len(p)<6:raise HTTPException(400,"Password must be at least 6 characters")
- return pwd.hash(p)
+ return pwd.hash(p[:72])
 def code(role,d):
  for _ in range(50):
   c=''.join(secrets.choice(string.ascii_uppercase+string.digits) for _ in range(8))
@@ -126,7 +126,7 @@ def signup(b:Signup,d:Session=Depends(db_dep)):
 @app.post("/auth/login")
 def login(b:Login,d:Session=Depends(db_dep)):
  u=d.query(User).filter((User.email==b.login.lower())|(User.phone==b.login)).first()
- if not u or not pwd.verify(b.password,u.password_hash) or not u.active:raise HTTPException(401,"Invalid login")
+ if not u or not pwd.verify(b.password[:72], u.password_hash) or not u.active: raise HTTPException(401, "Invalid login")
  return {"user":ud(u),"access_token":token_for(u)}
 @app.get("/auth/me")
 def me(u:User=Depends(auth)):return ud(u)
