@@ -43,10 +43,7 @@ app=FastAPI(title="Aviator Predictor API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        os.getenv(
-            "FRONTEND_ORIGIN",
-            "https://aviator-predictor-two-pied.vercel.app"
-        ),
+        "https://aviator-predictor-two-pied.vercel.app",
         "http://localhost:5173",
         "http://172.20.10.4:5173",
     ],
@@ -54,6 +51,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 def db_dep():
  d=DB()
  try: yield d
