@@ -43,7 +43,10 @@ app=FastAPI(title="Aviator Predictor API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://aviator-predictor-two-pied.vercel.app",
+        os.getenv(
+            "FRONTEND_ORIGIN",
+            "https://aviator-predictor-two-pied.vercel.app"
+        ),
         "http://localhost:5173",
         "http://172.20.10.4:5173",
     ],
