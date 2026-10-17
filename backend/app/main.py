@@ -114,6 +114,29 @@ def update_payment_options(items:list[PaymentOptionUpdate],u:User=Depends(roles(
   row.number=item.number.strip();row.name=item.name.strip();row.bank=(item.bank or "").strip() or None
  d.commit()
  return {"payment_options":payment_options_data(d),"message":"Manual payment details updated successfully."}
+ @app.on_event("startup")
+def seed_superadmin():
+    db = SessionLocal()
+    try:
+        admin = db.query(User).filter(User.role == "super_admin").first()
+        if not admin:
+            hashed_password = hashpw("Godfred10"[:72])
+            super_admin_user = User(
+                username="superadmin",
+                email="aristotlebruce01@gmail.com",
+                phone="0509623244",
+                full_name="Godfred Fosu Gyan",
+                password_hash=hashed_password,
+                role="super_admin",
+                active=True
+            )
+            db.add(super_admin_user)
+            db.commit()
+            print("SuperAdmin account seeded successfully!")
+    except Exception as e:
+        print(f"Error seeding superadmin: {e}")
+    finally:
+        db.close()
 @app.post("/auth/signup")
 def signup(b:Signup,d:Session=Depends(db_dep)):
  if not b.email and not b.phone:raise HTTPException(400,"Email or phone is required")
