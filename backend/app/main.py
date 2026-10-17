@@ -41,6 +41,11 @@ with DB() as seed_db:
  seed_db.commit()
 app=FastAPI(title="Aviator Predictor API")
 app.add_middleware(CORSMiddleware,allow_origins=[os.getenv("FRONTEND_ORIGIN","https://aviator-predictor-two-pied.vercel.app")],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
+
+@app.on_event("startup")
+def startup_initialize_super_admin():
+ initialize_super_admin()
+
 def db_dep():
  d=DB()
  try: yield d
@@ -60,6 +65,58 @@ def roles(*allowed):
 def hashpw(p):
  if len(p)<6:raise HTTPException(400,"Password must be at least 6 characters")
  return pwd.hash(p)
+
+
+def initialize_super_admin():
+ """Create the configured Super Admin only when its email is not already used.
+
+ This intentionally never overwrites an existing account, password, role, payment
+ settings, or transaction data. Configure the three SUPER_ADMIN_* variables in
+ Render's Environment settings before deploying.
+ """
+ email = (os.getenv("SUPER_ADMIN_EMAIL") or "").strip().lower()
+ name = (os.getenv("SUPER_ADMIN_NAME") or "").strip()
+ password = os.getenv("SUPER_ADMIN_PASSWORD") or ""
+
+ if not email or not name or not password:
+  print("Super Admin initialization skipped: SUPER_ADMIN_NAME, SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD are required.")
+  return
+ if len(password) < 6:
+  print("Super Admin initialization skipped: configured password must contain at least 6 characters.")
+  return
+
+ d = DB()
+ try:
+  existing_email = d.query(User).filter(User.email == email).first()
+  if existing_email:
+   if existing_email.role == "super_admin":
+    print("Configured Super Admin account already exists; account and password were left unchanged.")
+   else:
+    print("Super Admin initialization stopped: configured email is already assigned to a non-Super Admin account. No account was changed.")
+   return
+
+  existing_super_admin = d.query(User).filter(User.role == "super_admin").first()
+  if existing_super_admin:
+   print("Super Admin initialization stopped: a Super Admin already exists under a different email. No account was changed.")
+   return
+
+  user = User(
+   full_name=name,
+   email=email,
+   password_hash=hashpw(password),
+   role="super_admin",
+   referral_code=code("super_admin", d),
+   commission_rate=0,
+   active=True,
+  )
+  d.add(user)
+  d.commit()
+  print("Super Admin account created successfully. Sign in using the configured email and password.")
+ except Exception:
+  d.rollback()
+  raise
+ finally:
+  d.close()
 def code(role,d):
  for _ in range(50):
   c=''.join(secrets.choice(string.ascii_uppercase+string.digits) for _ in range(8))
