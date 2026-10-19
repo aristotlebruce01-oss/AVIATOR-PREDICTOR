@@ -12,7 +12,20 @@ from sqlalchemy.orm import declarative_base,sessionmaker,Session
 from dotenv import load_dotenv
 load_dotenv()
 SECRET=os.getenv("JWT_SECRET","DEV-ONLY-change-before-deploy"); ALG="HS256"; UPLOAD=os.getenv("UPLOAD_DIR","uploads"); os.makedirs(UPLOAD,exist_ok=True)
-URL=os.getenv("DATABASE_URL","sqlite:///./aviator.db"); engine=create_engine(URL,connect_args={"check_same_thread":False} if URL.startswith("sqlite") else {})
+
+URL = os.getenv("DATABASE_URL", "sqlite:///./aviator.db")
+
+# Use the installed psycopg2 driver for PostgreSQL connections.
+if URL.startswith("postgres://"):
+    URL = URL.replace("postgres://", "postgresql+psycopg2://", 1)
+elif URL.startswith("postgresql://"):
+    URL = URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+engine = create_engine(
+    URL,
+    connect_args={"check_same_thread": False} if URL.startswith("sqlite") else {}
+)
+
 DB=sessionmaker(bind=engine,autoflush=False,autocommit=False); Base=declarative_base(); pwd=CryptContext(schemes=["bcrypt"],deprecated="auto"); oauth=OAuth2PasswordBearer(tokenUrl="/auth/login")
 PACKAGES={"BASIC":{"amount":300,"predictions":2},"STANDARD":{"amount":500,"predictions":4},"ADVANCED":{"amount":700,"predictions":6},"PREMIUM":{"amount":1000,"predictions":8},"ULTIMATE":{"amount":1500,"predictions":10},"INFINITE":{"amount":2000,"predictions":None}}
 PAYMENT_OPTIONS={"MTN MoMo":{"number":"0558559878","name":"Godfred Fosu Gyan"},"Telecel Cash":{"number":"0509623244","name":"Godfred Fosu Gyan"},"Bank Transfer":{"bank":"GCB","number":"1011103552151","name":"Godfred Fosu Gyan"}}
